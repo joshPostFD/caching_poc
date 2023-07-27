@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -68,10 +69,11 @@ public class RedisRepository {
                     Map<ID, T> keyValueMap = new HashMap<>();
                     for (int index = 0; index < stringValues.size(); index++) {
                         try {
-                            if (stringValues.get(index) != null) {
+                            String value = stringValues.get(index);
+                            if (StringUtils.hasText(value)) {
                                 keyValueMap.put(
                                         ids.get(index),
-                                        objectMapper.readValue(stringValues.get(index), tClass)
+                                        objectMapper.readValue(value, tClass)
                                 );
                             }
                         } catch (JsonProcessingException e) {
@@ -98,14 +100,18 @@ public class RedisRepository {
         }
     }
 
-    public <T, ID> Mono<T> save(@NonNull T obj, @NonNull ID id) throws JsonProcessingException {
+    public <T, ID> Mono<T> save(@NonNull T obj, @NonNull ID id) {
         final CacheKey cacheKey = getCacheKey(obj.getClass());
-        return reactiveStringRedisTemplate.opsForValue().set(
-                        cacheKey.generateKey(idKeyExtractor.extractKey(id)),
-                        objectMapper.writeValueAsString(obj),
-                        Duration.ofSeconds(cacheKey.getTtlInSeconds(cacheDetailsConfig)))
-                .map((set) -> obj)
-                .onErrorResume(this::handleError);
+        try {
+            return reactiveStringRedisTemplate.opsForValue().set(
+                            cacheKey.generateKey(idKeyExtractor.extractKey(id)),
+                            objectMapper.writeValueAsString(obj))
+                    .map((set) -> obj)
+                    .onErrorResume(this::handleError);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            return Mono.empty();
+        }
     }
 
 
@@ -118,7 +124,7 @@ public class RedisRepository {
         final Map<String, String> keyValueMap = idValueMap.entrySet()
                 .stream()
                 .collect(Collectors.toMap(
-                        entry -> idKeyExtractor.extractKey(entry.getKey()),
+                        entry -> cacheKey.generateKey(idKeyExtractor.extractKey(entry.getKey())),
                         entry -> {
                             try {
                                 return objectMapper.writeValueAsString(entry.getValue());

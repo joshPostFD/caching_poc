@@ -1,6 +1,8 @@
 package com.fanduel.josh.cache;
 
 import com.fanduel.josh.model.TestObj;
+import com.fanduel.josh.model.TestObj2;
+import com.fanduel.josh.model.TestObj3;
 import lombok.Getter;
 import org.springframework.lang.Nullable;
 
@@ -9,7 +11,10 @@ import java.util.Optional;
 
 public enum CacheKey {
 
-    testObj(TestObj.class);
+    testObj(TestObj.class),
+    testObj2(TestObj2.class),
+    testObj3(TestObj3.class),
+    ;
 
     @Getter
     final Class<?> type;

@@ -1,5 +1,6 @@
 package com.fanduel.josh.cache;
 
+import com.fanduel.josh.model.ComplexId3;
 import com.fanduel.josh.model.TestObj;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;
@@ -19,7 +20,7 @@ public class IdKeyExtractor {
         registerExtractor(Integer.class, Object::toString);
         registerExtractor(Double.class, Object::toString);
         registerExtractor(Long.class, Object::toString);
-        registerExtractor(TestObj.class, (TestObj test) -> test.getTestInteger1().toString());
+        registerExtractor(ComplexId3.class, (ComplexId3 test) -> combineStrings(test.getTestString1(), test.getTestString2()));
     }
 
     private String combineStrings(String... strings) {

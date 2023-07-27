@@ -72,6 +72,7 @@ public class CacheConfig extends CachingConfigurerSupport {
     }
 
     @Bean
+    @Primary
     public JedisConnectionFactory redisConnectionFactory(
             JedisClientConfiguration jedisClientConfiguration) {
         RedisStandaloneConfiguration redisStandaloneConfiguration =

@@ -1,6 +1,8 @@
 package com.fanduel.josh.cache;
 
 import javax.annotation.PostConstruct;
+
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.connection.RedisConnection;
@@ -12,15 +14,12 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @EnableScheduling
+@RequiredArgsConstructor
 public class RedisHeartbeat {
 
     private boolean isAlive = false;
 
-    private RedisConnectionFactory connectionFactory;
-
-    public RedisHeartbeat(RedisConnectionFactory connectionFactory) {
-        this.connectionFactory = connectionFactory;
-    }
+    private final RedisConnectionFactory connectionFactory;
 
     @PostConstruct
     protected void init() {

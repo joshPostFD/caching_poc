@@ -17,33 +17,29 @@ public class CacheLoader {
 
     public <T> Mono<T> loadOrFetch(Class<T> tClass, Supplier<T> supplier) {
         return redisRepository.find(tClass)
-                .map(res -> {
-                    if (res == null) {
-                        res = supplier.get();
-                        if (res != null) {
-                            redisRepository.save(res);
-                        }
-                    }
-                    return res;
-                });
+                .switchIfEmpty(Mono.defer(() -> Mono.just(supplier.get()))
+                        .doOnSuccess(res -> {
+                            if (res != null) {
+                                redisRepository.save(res).toFuture();
+                            }
+                        })
+                );
     }
 
     public <T, ID> Mono<T> loadOrFetchById(Class<T> tClass, ID id, Supplier<T> supplier) {
         return redisRepository.findOne(tClass, id)
-                .map(res -> {
-                    if (res == null) {
-                        res = supplier.get();
-                        if (res != null) {
-                            redisRepository.save(res);
-                        }
-                    }
-                    return res;
-                });
+                .switchIfEmpty(Mono.defer(() -> Mono.just(supplier.get()))
+                        .doOnSuccess(res -> {
+                            if (res != null) {
+                                redisRepository.save(res, id).toFuture();
+                            }
+                        })
+                );
     }
 
     public <T, ID> Mono<Map<ID, T>> loadOrFetchManyById(Class<T> tClass,
                                                         Collection<ID> ids,
-                                                        Supplier<Mono<Map<ID, T>>> supplier) {
+                                                        Supplier<Map<ID, T>> supplier) {
         return redisRepository.findMany(tClass, ids)
                 .map(res -> {
                     Map<ID, T> responseMap = new HashMap<>();
@@ -52,9 +48,9 @@ public class CacheLoader {
                         ids.removeAll(responseMap.keySet());
                     }
                     if (!ids.isEmpty()) {
-                        Map<ID, T> fetchedMap = supplier.get().block();
+                        Map<ID, T> fetchedMap = supplier.get();
                         if (fetchedMap != null) {
-                            redisRepository.saveMany(fetchedMap);
+                            redisRepository.saveMany(fetchedMap).toFuture();
                             responseMap.putAll(fetchedMap);
                         }
                     }
