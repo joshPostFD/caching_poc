@@ -35,6 +35,7 @@ import org.springframework.data.redis.connection.lettuce.LettuceClientConfigurat
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
+import org.springframework.data.redis.repository.configuration.EnableRedisRepositories;
 import org.springframework.data.redis.serializer.*;
 
 /**
@@ -44,8 +45,9 @@ import org.springframework.data.redis.serializer.*;
  */
 @Configuration
 @EnableCaching
-@Slf4j
+@EnableRedisRepositories("com.fanduel.josh.repository")
 @RequiredArgsConstructor
+@Slf4j
 public class CacheConfig extends CachingConfigurerSupport {
 
     @Value("${spring.redis.host}")
@@ -61,6 +63,7 @@ public class CacheConfig extends CachingConfigurerSupport {
     private long connectionTimeout;
 
     private final CacheDetailsConfig cacheDetailsConfig;
+    public static final String KEY_DELIMITER = ":";
 
     @Bean
     @Primary
@@ -129,23 +132,18 @@ public class CacheConfig extends CachingConfigurerSupport {
     }
 
     @Bean
-    public Ticker ticker() {
-        return Ticker.systemTicker();
-    }
-
-    @Bean
-    public SimpleCacheManager simpleCacheManager(Ticker ticker) {
+    public SimpleCacheManager simpleCacheManager() {
         SimpleCacheManager simpleCacheManager = new SimpleCacheManager();
         List<CaffeineCache> mapCaches =
-                CacheKey.values().stream()
-                        .map(cacheKey -> buildCache(cacheKey, ticker))
+                CacheKeyStrings.values().stream()
+                        .map(this::buildCache)
                         .collect(Collectors.toList());
         simpleCacheManager.setCaches(mapCaches);
         simpleCacheManager.initializeCaches();
         return simpleCacheManager;
     }
 
-    private CaffeineCache buildCache(String name, Ticker ticker) {
+    private CaffeineCache buildCache(String name) {
         return new CaffeineCache(
                 name,
                 Caffeine.newBuilder()
@@ -157,7 +155,7 @@ public class CacheConfig extends CachingConfigurerSupport {
                                                         .getDefaultConfig()
                                                         .getTtlInSeconds()),
                                 TimeUnit.SECONDS)
-                        .ticker(ticker)
+                        .ticker(Ticker.systemTicker())
                         .build());
     }
 
@@ -165,16 +163,16 @@ public class CacheConfig extends CachingConfigurerSupport {
     public RedisCacheManager redisCacheManager(RedisConnectionFactory redisConnectionFactory) {
         Map<String, RedisCacheConfiguration> redisCacheConfigurations = new HashMap<>();
 
-        for (String key : CacheKey.values()) {
-            CacheDetailsConfig.CacheDetails cacheConfig = cacheDetailsConfig.get(key);
-            if (cacheConfig == null) {
-                log.info("Cache config not found for {}. Using default configuration values.", key);
-                redisCacheConfigurations.put(
-                        key, createCacheConfiguration(cacheDetailsConfig.getDefaultConfig()));
-            } else {
-                redisCacheConfigurations.put(key, createCacheConfiguration(cacheConfig));
-            }
-        }
+//        for (String key : CacheKey.values()) {
+//            CacheDetailsConfig.CacheDetails cacheConfig = cacheDetailsConfig.get(key);
+//            if (cacheConfig == null) {
+//                log.info("Cache config not found for {}. Using default configuration values.", key);
+//                redisCacheConfigurations.put(
+//                        key, createCacheConfiguration(cacheDetailsConfig.getDefaultConfig()));
+//            } else {
+//                redisCacheConfigurations.put(key, createCacheConfiguration(cacheConfig));
+//            }
+//        }
 
         RedisCacheManager redisCacheManager =
                 RedisCacheManager.builder(redisConnectionFactory)
