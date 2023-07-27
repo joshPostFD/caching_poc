@@ -1,0 +1,21 @@
+server:
+  port: 8090
+
+spring:
+  cache:
+    type: redis
+  redis:
+    host: localhost
+    port: 6379
+    connect-timeout: 10
+    timeout: 10
+
+
+cache:
+  defaultConfig:
+    ttlInSeconds: 3600
+  map:
+    abstractCacheKey:
+      ttlInSeconds: 604800
+    testKey:
+      ttlInSeconds: 15

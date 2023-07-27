@@ -1,0 +1,27 @@
+{
+  "groups": [
+    {
+      "name": "cache",
+      "type": "com.fanduel.josh.cache.CacheDetailsConfig",
+      "sourceType": "com.fanduel.josh.cache.CacheDetailsConfig"
+    },
+    {
+      "name": "cache.default-config",
+      "type": "com.fanduel.josh.cache.CacheDetailsConfig$CacheDetails",
+      "sourceType": "com.fanduel.josh.cache.CacheDetailsConfig"
+    }
+  ],
+  "properties": [
+    {
+      "name": "cache.default-config.ttl-in-seconds",
+      "type": "java.lang.Long",
+      "sourceType": "com.fanduel.josh.cache.CacheDetailsConfig$CacheDetails"
+    },
+    {
+      "name": "cache.map",
+      "type": "java.util.Map<java.lang.String,com.fanduel.josh.cache.CacheDetailsConfig$CacheDetails>",
+      "sourceType": "com.fanduel.josh.cache.CacheDetailsConfig"
+    }
+  ],
+  "hints": []
+}
