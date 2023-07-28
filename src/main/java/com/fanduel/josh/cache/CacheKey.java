@@ -1,48 +1,30 @@
 package com.fanduel.josh.cache;
 
-import com.fanduel.josh.model.TestObj;
-import com.fanduel.josh.model.TestObj2;
-import com.fanduel.josh.model.TestObj3;
-import lombok.Getter;
-import org.springframework.lang.Nullable;
-
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
-import java.util.Optional;
+import java.util.List;
+import java.util.stream.Collectors;
 
-public enum CacheKey {
+public class CacheKey {
 
-    testObj(TestObj.class),
-    testObj2(TestObj2.class),
-    testObj3(TestObj3.class),
-    ;
+    private CacheKey() {}
+    public static final String PARTNER_PLAYERS_MAPPING_CACHE = "partnerplayersmap";
 
-    @Getter
-    final Class<?> type;
-
-    CacheKey(Class<?> clazz) {
-        type = clazz;
-    }
-
-    public String getKey() {
-        return name();
-    }
-
-    public long getTtlInSeconds(CacheDetailsConfig cacheDetailsConfig) {
-        return Optional.ofNullable(cacheDetailsConfig.get(getKey()))
-                .map(CacheDetailsConfig.CacheDetails::getTtlInSeconds)
-                .orElse(-1L);
-    }
-
-    public String generateKey(@Nullable String... keys) {
-        if (keys == null || keys.length == 0) {
-            return getKey();
-        }
-        return getKey() + CacheConfig.KEY_DELIMITER + String.join(CacheConfig.KEY_DELIMITER, keys);
-    }
-
-    public static Optional<CacheKey> fromClass(Class<?> type) {
-        return Arrays.stream(values())
-                .filter(cacheKey -> cacheKey.type.equals(type))
-                .findFirst();
+    public static List<String> values() {
+        final CacheKey instance = new CacheKey();
+        return Arrays.stream(CacheKey.class.getDeclaredFields())
+                .filter(field -> Modifier.isPublic(field.getModifiers()))
+                .filter(field -> Modifier.isStatic(field.getModifiers()))
+                .filter(field -> Modifier.isFinal(field.getModifiers()))
+                .map(
+                        field -> {
+                            try {
+                                return field.get(instance);
+                            } catch (IllegalAccessException e) {
+                                throw new RuntimeException(e);
+                            }
+                        })
+                .map(Object::toString)
+                .collect(Collectors.toList());
     }
 }

@@ -38,7 +38,7 @@ public class TestController2_2 {
     public Mono<Map<String, TestObj2>> getById(@RequestParam MultiValueMap<String, String> params) {
         List<String> ids = params.get("id");
         return cacheLoader.loadOrFetchManyById(TestObj2.class, ids,
-                () -> ids.stream().collect(Collectors.toMap(
+                () -> ids.parallelStream().collect(Collectors.toMap(
                         Function.identity(),
                         this::newTestObj2
                 )));
@@ -51,6 +51,11 @@ public class TestController2_2 {
         TestObj2.setTestString2(String.valueOf((int) (Math.random() * 100)));
         TestObj2.setTestInteger1((int) (Math.random() * 100));
         TestObj2.setTestInteger2((int) (Math.random() * 100));
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         return TestObj2;
     }
 

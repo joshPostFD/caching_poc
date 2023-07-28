@@ -1,7 +1,6 @@
 package com.fanduel.josh.cache;
 
 import com.fanduel.josh.model.ComplexId3;
-import com.fanduel.josh.model.TestObj;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;
 
@@ -11,11 +10,11 @@ import java.util.NoSuchElementException;
 import java.util.function.Function;
 
 @Component
-public class IdKeyExtractor {
+public class ObjectKeyExtractor {
 
     private final Map<Class<?>, Function<?, String>> keyExtractors = new HashMap<>();
 
-    public IdKeyExtractor() {
+    public ObjectKeyExtractor() {
         registerExtractor(String.class, Function.identity());
         registerExtractor(Integer.class, Object::toString);
         registerExtractor(Double.class, Object::toString);

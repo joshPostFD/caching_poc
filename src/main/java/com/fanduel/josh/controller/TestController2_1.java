@@ -51,6 +51,12 @@ public class TestController2_1 {
         testObj.setTestString2(String.valueOf((int) (Math.random() * 100)));
         testObj.setTestInteger1((int) (Math.random() * 100));
         testObj.setTestInteger2((int) (Math.random() * 100));
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         return testObj;
     }
 

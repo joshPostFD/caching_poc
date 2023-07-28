@@ -19,3 +19,5 @@ cache:
       ttlInSeconds: 604800
     testKey:
       ttlInSeconds: 15
+    testObj2:
+      ttlInSeconds: 15

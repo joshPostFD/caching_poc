@@ -126,17 +126,14 @@ public class CacheConfig extends CachingConfigurerSupport {
     public ReactiveStringRedisTemplate reactiveStringRedisTemplate(
             ReactiveRedisConnectionFactory connectionFactory
     ) {
-        ReactiveStringRedisTemplate template =
-                new ReactiveStringRedisTemplate(connectionFactory);
-
-        return template;
+        return new ReactiveStringRedisTemplate(connectionFactory);
     }
 
     @Bean
     public SimpleCacheManager simpleCacheManager() {
         SimpleCacheManager simpleCacheManager = new SimpleCacheManager();
         List<CaffeineCache> mapCaches =
-                CacheKeyStrings.values().stream()
+                CacheKey.values().stream()
                         .map(this::buildCache)
                         .collect(Collectors.toList());
         simpleCacheManager.setCaches(mapCaches);
@@ -164,16 +161,16 @@ public class CacheConfig extends CachingConfigurerSupport {
     public RedisCacheManager redisCacheManager(RedisConnectionFactory redisConnectionFactory) {
         Map<String, RedisCacheConfiguration> redisCacheConfigurations = new HashMap<>();
 
-//        for (String key : CacheKey.values()) {
-//            CacheDetailsConfig.CacheDetails cacheConfig = cacheDetailsConfig.get(key);
-//            if (cacheConfig == null) {
-//                log.info("Cache config not found for {}. Using default configuration values.", key);
-//                redisCacheConfigurations.put(
-//                        key, createCacheConfiguration(cacheDetailsConfig.getDefaultConfig()));
-//            } else {
-//                redisCacheConfigurations.put(key, createCacheConfiguration(cacheConfig));
-//            }
-//        }
+        for (String key : CacheKey.values()) {
+            CacheDetailsConfig.CacheDetails cacheConfig = cacheDetailsConfig.get(key);
+            if (cacheConfig == null) {
+                log.info("Cache config not found for {}. Using default configuration values.", key);
+                redisCacheConfigurations.put(
+                        key, createCacheConfiguration(cacheDetailsConfig.getDefaultConfig()));
+            } else {
+                redisCacheConfigurations.put(key, createCacheConfiguration(cacheConfig));
+            }
+        }
 
         RedisCacheManager redisCacheManager =
                 RedisCacheManager.builder(redisConnectionFactory)

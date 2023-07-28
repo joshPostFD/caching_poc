@@ -13,7 +13,7 @@ import java.util.function.Supplier;
 @RequiredArgsConstructor
 public class CacheLoader {
 
-    private final RedisRepository redisRepository;
+    private final ReactiveRedisRepository redisRepository;
 
     public <T> Mono<T> loadOrFetch(Class<T> tClass, Supplier<T> supplier) {
         return redisRepository.find(tClass)
@@ -60,4 +60,3 @@ public class CacheLoader {
 
 
 }
-
