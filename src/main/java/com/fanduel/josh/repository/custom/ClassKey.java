@@ -1,5 +1,7 @@
-package com.fanduel.josh.cache;
+package com.fanduel.josh.repository.custom;
 
+import com.fanduel.josh.cache.CacheConfig;
+import com.fanduel.josh.cache.CacheDetailsConfig;
 import com.fanduel.josh.model.TestObj;
 import com.fanduel.josh.model.TestObj2;
 import com.fanduel.josh.model.TestObj3;
@@ -11,16 +13,19 @@ import java.util.Optional;
 
 public enum ClassKey {
 
-    testObj(TestObj.class),
-    testObj2(TestObj2.class),
-    testObj3(TestObj3.class),
+    testObj(TestObj.class, false),
+    testObj2(TestObj2.class, true),
+    testObj3(TestObj3.class, true),
     ;
 
     @Getter
-    final Class<?> type;
+    private final Class<?> type;
+    @Getter
+    private final boolean multipleItems;
 
-    ClassKey(Class<?> clazz) {
+    ClassKey(Class<?> clazz, boolean multipleItems) {
         type = clazz;
+        this.multipleItems = multipleItems;
     }
 
     public String getKey() {

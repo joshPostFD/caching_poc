@@ -99,8 +99,8 @@
         <version>3.7.0</version>
         <configuration>
           <compilerVersion>1.8</compilerVersion>
-          <source>9</source>
-          <target>9</target>
+          <source>11</source>
+          <target>11</target>
           <annotationProcessors>
             <annotationProcessor>org.springframework.boot.configurationprocessor.ConfigurationMetadataAnnotationProcessor</annotationProcessor>
             <annotationProcessor>lombok.launch.AnnotationProcessorHider$AnnotationProcessor</annotationProcessor>

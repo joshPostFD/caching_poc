@@ -7,7 +7,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -36,8 +40,12 @@ public class TestController2_2 {
 
     @GetMapping("many")
     public Mono<Map<String, TestObj2>> getById(@RequestParam MultiValueMap<String, String> params) {
+        // Collection of IDs to grab
         List<String> ids = params.get("id");
+        // Supply cache loader with Class of the return type, and the collection of IDs you want
         return cacheLoader.loadOrFetchManyById(TestObj2.class, ids,
+                // Our typical Set -> Map service method.
+                // This will only be called to grab the IDs that do not exist in the cache
                 () -> ids.parallelStream().collect(Collectors.toMap(
                         Function.identity(),
                         this::newTestObj2

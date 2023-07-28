@@ -1,10 +1,13 @@
-package com.fanduel.josh.cache;
+package com.fanduel.josh.repository.custom;
 
+import com.fanduel.josh.cache.CacheConfig;
+import com.fanduel.josh.cache.CacheDetailsConfig;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -12,7 +15,13 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -26,16 +35,18 @@ public class ReactiveRedisRepository implements ReactiveCrudRepository {
     private final ObjectKeyExtractor idKeyExtractor;
 
     @Override
-    public <T> Mono<T> find(Class<T> tClass) {
-        final ClassKey cacheKey = getCacheKey(tClass);
-        final String key = cacheKey.generateKey();
+    public <T> Mono<T> find(@NonNull Class<T> tClass) {
+        final ClassKey classKey = getClassKey(tClass);
+        checkMultipleAllowed(classKey, false);
+        final String key = classKey.generateKey();
         return fetchKey(key, tClass);
     }
 
     @Override
-    public <T, ID> Mono<T> findOne(Class<T> tClass, ID id) {
-        final ClassKey cacheKey = getCacheKey(tClass);
-        final String key = cacheKey.generateKey(idKeyExtractor.extractKey(id));
+    public <T, ID> Mono<T> findOne(@NonNull Class<T> tClass, @NonNull ID id) {
+        final ClassKey classKey = getClassKey(tClass);
+        checkMultipleAllowed(classKey, true);
+        final String key = classKey.generateKey(idKeyExtractor.extractKey(id));
         return fetchKey(key, tClass);
     }
 
@@ -54,12 +65,13 @@ public class ReactiveRedisRepository implements ReactiveCrudRepository {
     }
 
     @Override
-    public <T, ID> Mono<Map<ID, T>> findMany(Class<T> tClass, Collection<ID> idCollection) {
+    public <T, ID> Mono<Map<ID, T>> findMany(@NonNull Class<T> tClass, @NonNull Collection<ID> idCollection) {
         List<ID> ids = new ArrayList<>(idCollection);
-        final ClassKey cacheKey = getCacheKey(tClass);
+        final ClassKey classKey = getClassKey(tClass);
+        checkMultipleAllowed(classKey, true);
         ids.removeIf(Objects::isNull);
         final List<String> keys = ids.stream()
-                .map(id -> cacheKey.generateKey(idKeyExtractor.extractKey(id)))
+                .map(id -> classKey.generateKey(idKeyExtractor.extractKey(id)))
                 .collect(Collectors.toList());
         return reactiveStringRedisTemplate.opsForValue()
                 .multiGet(keys)
@@ -84,12 +96,13 @@ public class ReactiveRedisRepository implements ReactiveCrudRepository {
 
     @Override
     public <T> Mono<T> save(@NonNull T obj) {
-        final ClassKey cacheKey = getCacheKey(obj.getClass());
+        final ClassKey classKey = getClassKey(obj.getClass());
+        checkMultipleAllowed(classKey, false);
         try {
             return reactiveStringRedisTemplate.opsForValue().set(
-                            cacheKey.generateKey(),
+                            classKey.generateKey(),
                             objectMapper.writeValueAsString(obj),
-                            Duration.ofSeconds(cacheKey.getTtlInSeconds(cacheDetailsConfig)))
+                            Duration.ofSeconds(classKey.getTtlInSeconds(cacheDetailsConfig)))
                     .map((set) -> obj)
                     .onErrorResume(this::handleError);
         } catch (JsonProcessingException e) {
@@ -100,12 +113,18 @@ public class ReactiveRedisRepository implements ReactiveCrudRepository {
 
     @Override
     public <T, ID> Mono<T> save(@NonNull T obj, @NonNull ID id) {
-        final ClassKey cacheKey = getCacheKey(obj.getClass());
+        final ClassKey classKey = getClassKey(obj.getClass());
+        checkMultipleAllowed(classKey, true);
+        if (!classKey.isMultipleItems()) {
+            throw new RuntimeException("Only one instance of " + classKey.getType().getName()
+                    + " can exist and therefore no ID should be provided."
+                    + " Use overloaded save method without ID included.");
+        }
         try {
             return reactiveStringRedisTemplate.opsForValue().set(
-                            cacheKey.generateKey(idKeyExtractor.extractKey(id)),
+                            classKey.generateKey(idKeyExtractor.extractKey(id)),
                             objectMapper.writeValueAsString(obj),
-                            Duration.ofSeconds(cacheKey.getTtlInSeconds(cacheDetailsConfig))
+                            Duration.ofSeconds(classKey.getTtlInSeconds(cacheDetailsConfig))
                     )
                     .map((set) -> obj)
                     .onErrorResume(this::handleError);
@@ -120,12 +139,13 @@ public class ReactiveRedisRepository implements ReactiveCrudRepository {
         if (idValueMap.isEmpty()) {
             return Mono.empty();
         }
-        final ClassKey cacheKey = getCacheKey(idValueMap.values().stream().findAny().get().getClass());
-        final long ttlInSeconds = cacheKey.getTtlInSeconds(cacheDetailsConfig);
+        final ClassKey classKey = getClassKey(idValueMap.values().stream().findAny().get().getClass());
+        checkMultipleAllowed(classKey, true);
+        final long ttlInSeconds = classKey.getTtlInSeconds(cacheDetailsConfig);
         final Map<String, String> keyValueMap = idValueMap.entrySet()
                 .stream()
                 .collect(Collectors.toMap(
-                        entry -> cacheKey.generateKey(idKeyExtractor.extractKey(entry.getKey())),
+                        entry -> classKey.generateKey(idKeyExtractor.extractKey(entry.getKey())),
                         entry -> {
                             try {
                                 return objectMapper.writeValueAsString(entry.getValue());
@@ -147,19 +167,65 @@ public class ReactiveRedisRepository implements ReactiveCrudRepository {
 
     @Override
     public <T, ID> Mono<Boolean> delete(Class<T> tClass, ID id) {
+        ClassKey classKey = getClassKey(tClass);
+        checkMultipleAllowed(classKey, true);
         return reactiveStringRedisTemplate.opsForValue().delete(
-                        getCacheKey(tClass).generateKey(idKeyExtractor.extractKey(id)))
+                        classKey.generateKey(idKeyExtractor.extractKey(id)))
                 .onErrorResume(this::handleError);
     }
 
-    private ClassKey getCacheKey(Class<?> type) {
+    @Override
+    public <T> Mono<Boolean> delete(Class<T> tClass) {
+        ClassKey classKey = getClassKey(tClass);
+        checkMultipleAllowed(classKey, false);
+        return reactiveStringRedisTemplate.opsForValue().delete(classKey.getKey())
+                .onErrorResume(this::handleError);
+    }
+
+    public <T> Mono<Long> deleteAllOfType(Class<T> tClass) {
+        return deleteAllByKeyName(getClassKey(tClass).getKey());
+    }
+
+    public Mono<Long> deleteAllByKeyName(String keyName) {
+        ClassKey classKey = Arrays.stream(ClassKey.values())
+                .filter(ck -> ck.name().equals(keyName))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Invalid key provided."));
+
+        if (classKey.isMultipleItems()) {
+            return reactiveStringRedisTemplate.scan(
+                            ScanOptions.scanOptions()
+                                    .match(classKey.getKey() + CacheConfig.KEY_DELIMITER + "*")
+                                    .build())
+                    .buffer(100)
+                    .flatMap(keyList ->
+                            reactiveStringRedisTemplate.delete(keyList.toArray(String[]::new)))
+                    .reduce(Long::sum);
+        } else {
+            return reactiveStringRedisTemplate.delete(classKey.getKey());
+        }
+    }
+
+    private ClassKey getClassKey(Class<?> type) {
         return ClassKey.fromClass(type)
                 .orElseThrow(() ->
-                        new RuntimeException("Type " + type.getName() + " is not registered in CacheKey enum."));
+                        new RuntimeException("Type " + type.getName() + " is not registered in ClassKey enum."));
     }
 
     private <T> Mono<T> handleError(Throwable throwable) {
         return Mono.empty();
+    }
+
+    private void checkMultipleAllowed(ClassKey classKey, boolean multipleAllowed) {
+        if (multipleAllowed != classKey.isMultipleItems()) {
+            if (classKey.isMultipleItems()) {
+                throw new RuntimeException("Multiple instances of " + classKey.getType().getName()
+                        + " can exist and therefore only methods including an ID should be used for this type.");
+            } else {
+                throw new RuntimeException("Only one instance of " + classKey.getType().getName()
+                        + " can exist and therefore no methods including an ID should be used for this type.");
+            }
+        }
     }
 
 }

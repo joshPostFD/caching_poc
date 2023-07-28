@@ -1,5 +1,6 @@
-package com.fanduel.josh.cache;
+package com.fanduel.josh.repository.custom;
 
+import com.fanduel.josh.cache.CacheConfig;
 import com.fanduel.josh.model.ComplexId3;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;

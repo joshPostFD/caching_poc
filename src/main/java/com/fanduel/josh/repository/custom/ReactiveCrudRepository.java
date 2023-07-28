@@ -1,4 +1,4 @@
-package com.fanduel.josh.cache;
+package com.fanduel.josh.repository.custom;
 
 import org.springframework.lang.NonNull;
 import reactor.core.publisher.Mono;
@@ -18,6 +18,8 @@ public interface ReactiveCrudRepository {
     <T, ID> Mono<T> save(@NonNull T obj, @NonNull ID id);
 
     <T, ID> Mono<Boolean> saveMany(@NonNull Map<ID, T> idValueMap);
+
+    <T> Mono<Boolean> delete(Class<T> tClass);
 
     <T, ID> Mono<Boolean> delete(Class<T> tClass, ID id);
 }

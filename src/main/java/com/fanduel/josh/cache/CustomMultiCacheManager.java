@@ -1,6 +1,5 @@
 package com.fanduel.josh.cache;
 
-import java.util.Collection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.Cache;
@@ -8,6 +7,8 @@ import org.springframework.cache.CacheManager;
 import org.springframework.cache.support.SimpleCacheManager;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.stereotype.Component;
+
+import java.util.Collection;
 
 @Slf4j
 @RequiredArgsConstructor

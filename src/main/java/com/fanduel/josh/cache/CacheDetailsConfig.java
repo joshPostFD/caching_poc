@@ -1,14 +1,13 @@
 package com.fanduel.josh.cache;
 
-import java.util.Map;
-import java.util.Optional;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
+import java.util.Map;
+import java.util.Optional;
 
 @Component
 @EnableConfigurationProperties

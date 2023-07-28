@@ -2,13 +2,19 @@ package com.fanduel.josh.controller;
 
 import com.fanduel.josh.cache.CacheConfig;
 import com.fanduel.josh.cache.CacheLoader;
+import com.fanduel.josh.repository.custom.ReactiveRedisRepository;
 import com.fanduel.josh.model.ComplexId3;
 import com.fanduel.josh.model.TestObj3;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -23,19 +29,22 @@ import java.util.stream.Collectors;
 public class TestController2_3 {
 
     private final CacheLoader cacheLoader;
+    private final ReactiveRedisRepository reactiveRedisRepository;
 
     @GetMapping
     public Mono<TestObj3> get() {
-        return cacheLoader.loadOrFetch(TestObj3.class, this::newTestObj3);
+        return cacheLoader.loadOrFetch(TestObj3.class,
+                this::newTestObj3);
     }
 
     @GetMapping("{id}")
     public Mono<TestObj3> getById(@PathVariable("id") String id) {
-        return cacheLoader.loadOrFetchById(TestObj3.class, new ComplexId3(id), () -> this.newTestObj3(new ComplexId3(id)));
+        return cacheLoader.loadOrFetchById(TestObj3.class, new ComplexId3(id),
+                () -> this.newTestObj3(new ComplexId3(id)));
     }
 
     @GetMapping("many")
-    public Mono<Map<ComplexId3, TestObj3>> getById(@RequestParam MultiValueMap<String, String> params) {
+    public Mono<Map<ComplexId3, TestObj3>> getManyById(@RequestParam MultiValueMap<String, String> params) {
         List<ComplexId3> ids = params.get("id").stream().map(ComplexId3::new).collect(Collectors.toList());
         return cacheLoader.loadOrFetchManyById(TestObj3.class, ids,
                 () -> ids.parallelStream()
@@ -43,6 +52,16 @@ public class TestController2_3 {
                                 Function.identity(),
                                 this::newTestObj3
                         )));
+    }
+
+    @DeleteMapping()
+    public Mono<Long> delete() {
+        return reactiveRedisRepository.deleteAllOfType(TestObj3.class);
+    }
+
+    @DeleteMapping("{id}")
+    public Mono<Long> deleteById(@PathVariable("id") String id) {
+        return reactiveRedisRepository.deleteAllByKeyName(id);
     }
 
     public TestObj3 newTestObj3(ComplexId3 id) {
