@@ -55,10 +55,11 @@ public class ReactiveRedisRepository implements ReactiveCrudRepository {
                 .get(key)
                 .map(string -> {
                     try {
-                        return objectMapper.readValue(string, tClass);
+                        return deserializeDataFromJson(string, tClass);
                     } catch (JsonProcessingException e) {
                         e.printStackTrace();
-                        reactiveStringRedisTemplate.opsForValue().delete(key);
+                        reactiveStringRedisTemplate.opsForValue().delete(key)
+                                .toFuture();
                         return null;
                     }
                 }).onErrorResume(this::handleError);
@@ -83,11 +84,13 @@ public class ReactiveRedisRepository implements ReactiveCrudRepository {
                             if (StringUtils.hasText(value)) {
                                 keyValueMap.put(
                                         ids.get(index),
-                                        objectMapper.readValue(value, tClass)
+                                        deserializeDataFromJson(value, tClass)
                                 );
                             }
                         } catch (JsonProcessingException e) {
                             e.printStackTrace();
+                            reactiveStringRedisTemplate.opsForValue().delete(keys.get(index))
+                                    .toFuture();
                         }
                     }
                     return keyValueMap;
@@ -101,7 +104,7 @@ public class ReactiveRedisRepository implements ReactiveCrudRepository {
         try {
             return reactiveStringRedisTemplate.opsForValue().set(
                             classKey.generateKey(),
-                            objectMapper.writeValueAsString(obj),
+                            serializeDataToJson(obj),
                             Duration.ofSeconds(classKey.getTtlInSeconds(cacheDetailsConfig)))
                     .map((set) -> obj)
                     .onErrorResume(this::handleError);
@@ -123,7 +126,7 @@ public class ReactiveRedisRepository implements ReactiveCrudRepository {
         try {
             return reactiveStringRedisTemplate.opsForValue().set(
                             classKey.generateKey(idKeyExtractor.extractKey(id)),
-                            objectMapper.writeValueAsString(obj),
+                            serializeDataToJson(obj),
                             Duration.ofSeconds(classKey.getTtlInSeconds(cacheDetailsConfig))
                     )
                     .map((set) -> obj)
@@ -148,7 +151,7 @@ public class ReactiveRedisRepository implements ReactiveCrudRepository {
                         entry -> classKey.generateKey(idKeyExtractor.extractKey(entry.getKey())),
                         entry -> {
                             try {
-                                return objectMapper.writeValueAsString(entry.getValue());
+                                return serializeDataToJson(entry.getValue());
                             } catch (JsonProcessingException e) {
                                 throw new RuntimeException(e);
                             }
@@ -204,6 +207,14 @@ public class ReactiveRedisRepository implements ReactiveCrudRepository {
         } else {
             return reactiveStringRedisTemplate.delete(classKey.getKey());
         }
+    }
+
+    private <T> String serializeDataToJson(T obj) throws JsonProcessingException {
+        return objectMapper.writeValueAsString(obj);
+    }
+
+    private <T> T deserializeDataFromJson(String value, Class<T> tClass) throws JsonProcessingException {
+        return objectMapper.readValue(value, tClass);
     }
 
     private ClassKey getClassKey(Class<?> type) {
