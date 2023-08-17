@@ -21,5 +21,5 @@ public interface ReactiveCrudRepository {
 
     <T> Mono<Boolean> delete(Class<T> tClass);
 
-    <T, ID> Mono<Boolean> delete(Class<T> tClass, ID id);
+    <T, ID> Mono<Boolean> deleteById(Class<T> tClass, ID id);
 }

@@ -48,7 +48,7 @@ public class ReactiveCaffeineRepository implements ReactiveCrudRepository {
     }
 
     @Override
-    public <T, ID> Mono<Boolean> delete(Class<T> tClass, ID id) {
+    public <T, ID> Mono<Boolean> deleteById(Class<T> tClass, ID id) {
         throw new RuntimeException("Not Implemented Yet");
     }
 }

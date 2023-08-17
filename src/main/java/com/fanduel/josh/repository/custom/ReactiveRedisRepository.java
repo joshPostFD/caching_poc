@@ -169,7 +169,7 @@ public class ReactiveRedisRepository implements ReactiveCrudRepository {
     }
 
     @Override
-    public <T, ID> Mono<Boolean> delete(Class<T> tClass, ID id) {
+    public <T, ID> Mono<Boolean> deleteById(Class<T> tClass, ID id) {
         ClassKey classKey = getClassKey(tClass);
         checkMultipleAllowed(classKey, true);
         return reactiveStringRedisTemplate.opsForValue().delete(

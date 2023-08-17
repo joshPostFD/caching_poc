@@ -5,6 +5,7 @@ import com.fanduel.josh.model.ComplexId3;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -20,6 +21,7 @@ public class ObjectKeyExtractor {
         registerExtractor(Integer.class, Object::toString);
         registerExtractor(Double.class, Object::toString);
         registerExtractor(Long.class, Object::toString);
+        registerExtractor(Instant.class, (instant) -> String.valueOf(instant.toEpochMilli()));
         registerExtractor(ComplexId3.class, (ComplexId3 test) -> combineStrings(test.getTestString1(), test.getTestString2()));
     }
 
